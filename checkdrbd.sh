@@ -52,7 +52,7 @@ MYSQL_FATAL_ERRORS='(2000|2001|2002|2003|2005|2008)'
 SPLIT_BRAIN_METHOD=0
 # maintenance flag: used to do maintenance on MySQL without switch between nodes
 MAINTENANCE="/etc/keepalived/maintenance"
-
+REPLICATION=1
 # Finally, to overwrite those defaults :
 CONFIG="/etc/keepalived/check_config.sh"
 
@@ -365,20 +365,22 @@ set_master() {
 		do
 			mysql_check $db $table
 		done
-
-		if ! check_replic
+		if [ $REPLICATION ]
 		then
-			$LOGDEBUG "Starting MySQL Replication..."
-			${MYSQL}admin start-slave
-			sleep 2
-		fi
+			if ! check_replic
+			then
+				$LOGDEBUG "Starting MySQL Replication..."
+				${MYSQL}admin start-slave
+				sleep 2
+			fi
 		
 
-		# Check that replication has started
+			# Check that replication has started
 		
-		if ! check_replic
-		then
-			$LOGWARN "MySQL replication is broken, you need to repair it with your hands"
+			if ! check_replic
+			then
+				$LOGWARN "MySQL replication is broken, you need to repair it with your hands"
+			fi
 		fi
 	else
 		$LOGWARN "MySQL is broken and need a manual repair :("
