@@ -29,6 +29,8 @@
 #
 DRBDADM="/sbin/drbdadm"
 MYSQL="/usr/local/mysql/bin/mysql"
+MYSQL_USER="root"
+MYSQL_PASSWORD=""
 # must return "1" string:
 CHECKSQL="SELECT 1"
 CHECKSQLSTR="1"
@@ -361,10 +363,18 @@ set_master() {
 	then
 		$LOGDEBUG "Checking MySQL MyISAM tables ..."
 		mysql_check mysql
-		$MYSQL -ABN -e "select TABLE_SCHEMA, TABLE_NAME from tables WHERE ENGINE='MyISAM' AND TABLE_SCHEMA NOT LIKE '%_schema' AND TABLE_SCHEMA NOT LIKE 'mysql'" information_schema | while read db table
-		do
-			mysql_check $db $table
-		done
+		if [ $MYSQL_PASSWORD != "" ]
+		then
+			$MYSQL -u$MYSQL_USER -p$MYSQL_PASSWORD -ABN -e "select TABLE_SCHEMA, TABLE_NAME from tables WHERE ENGINE='MyISAM' AND TABLE_SCHEMA NOT LIKE '%_schema' AND TABLE_SCHEMA NOT LIKE 'mysql'" information_schema | while read db table
+			do
+				mysql_check $db $table
+			done
+		else
+			$MYSQL -ABN -e "select TABLE_SCHEMA, TABLE_NAME from tables WHERE ENGINE='MyISAM' AND TABLE_SCHEMA NOT LIKE '%_schema' AND TABLE_SCHEMA NOT LIKE 'mysql'" information_schema | while read db table
+			do
+				mysql_check $db $table
+			done
+		fi
 		if [ $REPLICATION ]
 		then
 			if ! check_replic
@@ -397,7 +407,12 @@ set_master() {
 
 
 check_replic() {
-	m=$( $MYSQL --connect-timeout=2 -e "show slave status" --vertical mysql 2>&1 | grep -E 'Slave_.+Running' | grep Yes | wc -l )
+	if [ $MYSQL_PASSWORD != "" ]
+	then
+		m=$( $MYSQL -u$MYSQL_USER -p$MYSQL_PASSWORD --connect-timeout=2 -e "show slave status" --vertical mysql 2>&1 | grep -E 'Slave_.+Running' | grep Yes | wc -l )
+	else
+		m=$( $MYSQL --connect-timeout=2 -e "show slave status" --vertical mysql 2>&1 | grep -E 'Slave_.+Running' | grep Yes | wc -l )
+	fi	
 	$LOGDEBUG "CheckReplic: $m"
 	if [ $m -lt 2 ]
 	then
@@ -415,7 +430,13 @@ mysql_check() {
 	then
 		param="-B $db"
 	fi
-	cmd="${MYSQL}check --medium-check -F --auto-repair $param"
+	if [ $MYSQL_PASSWORD != "" ]
+	then
+		cmd="${MYSQL}check -u$MYSQL_USER -p$MYSQL_PASSWORD --medium-check -F --auto-repair $param"
+	else
+		cmd="${MYSQL}check --medium-check -F --auto-repair $param"
+	fi
+	
 	$LOGDEBUG "$cmd"
 	$cmd 2>&1 | while read l
 	do
@@ -434,9 +455,15 @@ check_mysql() {
 		return 0
 	fi
 
-	m=$( $MYSQL --connect-timeout=2 -ABN -e "$CHECKSQL" mysql 2>&1 )
-	mcode=$?
-
+	if [ $MYSQL_PASSWORD != "" ]
+	then
+		m=$( $MYSQL -u$MYSQL_USER -p$MYSQL_PASSWORD --connect-timeout=2 -ABN -e "$CHECKSQL" mysql 2>&1 )
+		mcode=$?
+	else
+		m=$( $MYSQL --connect-timeout=2 -ABN -e "$CHECKSQL" mysql 2>&1 )
+		mcode=$?
+	fi
+	
 	# Check MySQL error codes. Not all errors are fatal, like "1023 too many connections"
 	if [ $mcode -gt 0 ]
 	then
