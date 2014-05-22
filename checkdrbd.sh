@@ -164,7 +164,7 @@ check() {
 			then
 				$LOGWARN "(debug: MySQL is unavailable !)"
 				# Testing: do not disable this server if MySQL is down
-				#status=1
+				status=1
 			fi
 		fi
 	fi
