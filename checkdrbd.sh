@@ -198,7 +198,12 @@ kill_mysql() {
 	then
 		if /bin/kill -0 $( cat "$MYSQLPID" ) # process exist
 		then
-			${MYSQL}admin flush-logs
+			if [ "$MYSQL_PASSWORD" != "" ]
+			then
+				${MYSQL}admin -u $MYSQL_USER -p$MYSQL_PASSWORD flush-logs
+			else
+				${MYSQL}admin flush-logs
+			fi
 			mysqlpid=$( cat "$MYSQLPID" )
 			$LOGWARN "KILLING -9 mysqld[$mysqlpid]"
 			# mysqld_safe will not restart mysqld if pidfile is removed
@@ -380,7 +385,12 @@ set_master() {
 			if ! check_replic
 			then
 				$LOGDEBUG "Starting MySQL Replication..."
-				${MYSQL}admin start-slave
+				if [ "$MYSQL_PASSWORD" != "" ]
+				then
+					${MYSQL}admin -u$MYSQL_USER -p$MYSQL_PASSWORD start-slave
+				else
+					${MYSQL}admin start-slave
+				fi
 				sleep 2
 			fi
 		
