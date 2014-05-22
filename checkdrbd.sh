@@ -375,7 +375,7 @@ set_master() {
 				mysql_check $db $table
 			done
 		fi
-		if [ $REPLICATION ]
+		if [ $REPLICATION -ne 0 ]
 		then
 			if ! check_replic
 			then
