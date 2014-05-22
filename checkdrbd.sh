@@ -363,7 +363,7 @@ set_master() {
 	then
 		$LOGDEBUG "Checking MySQL MyISAM tables ..."
 		mysql_check mysql
-		if [ $MYSQL_PASSWORD != "" ]
+		if [ "$MYSQL_PASSWORD" != "" ]
 		then
 			$MYSQL -u$MYSQL_USER -p$MYSQL_PASSWORD -ABN -e "select TABLE_SCHEMA, TABLE_NAME from tables WHERE ENGINE='MyISAM' AND TABLE_SCHEMA NOT LIKE '%_schema' AND TABLE_SCHEMA NOT LIKE 'mysql'" information_schema | while read db table
 			do
@@ -407,7 +407,7 @@ set_master() {
 
 
 check_replic() {
-	if [ $MYSQL_PASSWORD != "" ]
+	if [ "$MYSQL_PASSWORD" != "" ]
 	then
 		m=$( $MYSQL -u$MYSQL_USER -p$MYSQL_PASSWORD --connect-timeout=2 -e "show slave status" --vertical mysql 2>&1 | grep -E 'Slave_.+Running' | grep Yes | wc -l )
 	else
@@ -455,7 +455,7 @@ check_mysql() {
 		return 0
 	fi
 
-	if [ $MYSQL_PASSWORD != "" ]
+	if [ "$MYSQL_PASSWORD" != "" ]
 	then
 		m=$( $MYSQL -u$MYSQL_USER -p$MYSQL_PASSWORD --connect-timeout=2 -ABN -e "$CHECKSQL" mysql 2>&1 )
 		mcode=$?
